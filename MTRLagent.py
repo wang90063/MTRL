@@ -50,7 +50,7 @@ class agent_ram():
         self.create_trainingmethod()
 
         #save and loading the neural network
-        self.saver=tf.train.Saver()
+        self.saver=tf.train.Saver(max_to_keep=100)
         self.session = tf.InteractiveSession()
         self.session.run(tf.global_variables_initializer())
 
@@ -70,6 +70,10 @@ class agent_ram():
             stateInput = tf.placeholder('float',[TASK_NUMBER, None, 128])
 
             # bidirectional-LSTM layer
+
+            # the sequence
+            self.step_size = tf.placeholder(tf.float32, [1])
+
             # cells for forward and backward
 
             with tf.variable_scope('forward_lstm'):
@@ -94,7 +98,7 @@ class agent_ram():
                                   initializer=tf.contrib.layers.xavier_initializer())
             W_bw=tf.get_variable(name="W_bw", shape=[128,self.actions],
                                   initializer=tf.contrib.layers.xavier_initializer())
-            b=self.weight_variable([self.actions])
+            b=tf.get_variable(name="bias",initializer=tf.constant(0.01, shape=[self.actions]))
 
             Qvalue=tf.matmul(output_fw, W_fw) + tf.matmul(output_bw, W_bw) + b
 
@@ -160,7 +164,7 @@ class agent_ram():
         })
 
         # save network every 100000 iteration
-        if self.timeStep % 500000==0:
+        if self.timeStep % 50000==0:
             self.saver.save(self.session, 'saved_networks/' + 'network' + '-dqn', global_step=self.timeStep)
 
         if self.timeStep % UPDATE_TIME == 0:
@@ -203,9 +207,14 @@ class agent_ram():
                 action_index = random.randrange(self.real_actions[n])
                 action_vec[action_index]=1
             else:
-                action_index = np.argmax(Qvalue, axis=2)
-                action_vec[action_index]=1
+                action_index = np.argmax(Qvalue[n][0][:self.real_actions[n]])
+                action_vec[action_index] = 1
             action_list.append(action_vec)
+
+
+        # change episilon
+        if self.epsilon > FINAL_EPSILON and self.timeStep > OBSERVE:
+            self.epsilon -= (INITIAL_EPSILON - FINAL_EPSILON)/EXPLORE
 
         return action_list
 

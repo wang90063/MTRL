@@ -66,9 +66,6 @@ def playAtari():
         # 'Observation_list' is [[Observation],,], and 'Observation_store_list' is [Observation]
         agent.setPerception(Observation_list, actions, reward_list, done_list)
 
-
-
-
 def main():
     playAtari()
 
